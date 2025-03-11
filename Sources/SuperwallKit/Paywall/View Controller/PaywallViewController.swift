@@ -19,6 +19,8 @@ public class PaywallViewController: UIViewController, LoadingDelegate {
     return paywallStateSubject?.eraseToAnyPublisher()
   }
 
+  public var webViewAlphaZeroOnWillAppear = false
+
   /// Defines whether the presentation should animate based on the presentation style.
   @objc public var presentationIsAnimated: Bool {
     return presentationStyle != .fullscreenNoAnimation
@@ -321,6 +323,7 @@ public class PaywallViewController: UIViewController, LoadingDelegate {
     }
 
     webView.scrollView.isScrollEnabled = paywall.isScrollEnabled
+    reloadWebView()
   }
 
   private func loadWebViewFromArchive(url: URL) {
@@ -714,25 +717,29 @@ extension PaywallViewController: PaywallMessageHandlerDelegate {
 
 // MARK: - View Lifecycle
 extension PaywallViewController {
-  override public func viewWillAppear(_ animated: Bool) {
-    super.viewWillAppear(animated)
-    cache?.activePaywallVcKey = cacheKey
+    override public func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        cache?.activePaywallVcKey = cacheKey
 
-    if isSafariVCPresented {
-      return
+        if isSafariVCPresented {
+            return
+        }
+
+        if webViewAlphaZeroOnWillAppear {
+            webView.alpha = 0.0
+        }
+
+        if #available(iOS 15.0, *),
+           !deviceHelper.isMac {
+            webView.setAllMediaPlaybackSuspended(false)  // ignore-xcode-12
+        }
+
+        if webView.loadingHandler.didFailToLoad {
+            loadWebView()
+        }
+
+        presentationWillBegin()
     }
-
-    if #available(iOS 15.0, *),
-      !deviceHelper.isMac {
-      webView.setAllMediaPlaybackSuspended(false)  // ignore-xcode-12
-    }
-
-    if webView.loadingHandler.didFailToLoad {
-      loadWebView()
-    }
-
-    presentationWillBegin()
-  }
 
   /// Determines whether a survey will show.
   private var willShowSurvey: Bool {
@@ -782,10 +789,13 @@ extension PaywallViewController {
     presentationWillPrepare = false
   }
 
-  public override func viewDidAppear(_ animated: Bool) {
-    super.viewDidAppear(animated)
-    presentationDidFinish()
-  }
+    public override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if webViewAlphaZeroOnWillAppear {
+            webView.alpha = 1.0
+        }
+        presentationDidFinish()
+    }
 
   /// Lets the view controller know that presentation has finished. Only called once per presentation.
   private func presentationDidFinish() {
