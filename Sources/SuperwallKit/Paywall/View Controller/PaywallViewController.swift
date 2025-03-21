@@ -739,7 +739,7 @@ extension PaywallViewController {
             hasViewAppeared = true
             
             webView.alpha = 0
-            UIView.animate(withDuration: 0.25) {
+            UIView.animate(withDuration: 0.33) {
                 self.webView.alpha = 1
             }
         }
