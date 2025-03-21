@@ -168,6 +168,8 @@ public class PaywallViewController: UIViewController, LoadingDelegate {
   private unowned let deviceHelper: DeviceHelper
   private weak var cache: PaywallViewControllerCache?
   private weak var paywallArchiveManager: PaywallArchiveManager?
+    
+  private var hasViewAppeared: Bool = false
 
   // MARK: - View Lifecycle
 
@@ -733,9 +735,13 @@ extension PaywallViewController {
 
         presentationWillBegin()
         
-        webView.alpha = 0
-        UIView.animate(withDuration: 0.25) {
-            self.webView.alpha = 1
+        if !hasViewAppeared {
+            hasViewAppeared = true
+            
+            webView.alpha = 0
+            UIView.animate(withDuration: 0.25) {
+                self.webView.alpha = 1
+            }
         }
     }
 
