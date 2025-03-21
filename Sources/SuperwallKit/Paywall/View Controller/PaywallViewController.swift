@@ -19,8 +19,6 @@ public class PaywallViewController: UIViewController, LoadingDelegate {
     return paywallStateSubject?.eraseToAnyPublisher()
   }
 
-  public var webViewAlphaZeroOnWillAppear = false
-
   /// Defines whether the presentation should animate based on the presentation style.
   @objc public var presentationIsAnimated: Bool {
     return presentationStyle != .fullscreenNoAnimation
@@ -323,7 +321,6 @@ public class PaywallViewController: UIViewController, LoadingDelegate {
     }
 
     webView.scrollView.isScrollEnabled = paywall.isScrollEnabled
-    reloadWebView()
   }
 
   private func loadWebViewFromArchive(url: URL) {
@@ -725,10 +722,6 @@ extension PaywallViewController {
             return
         }
 
-        if webViewAlphaZeroOnWillAppear {
-            webView.alpha = 0.0
-        }
-
         if #available(iOS 15.0, *),
            !deviceHelper.isMac {
             webView.setAllMediaPlaybackSuspended(false)  // ignore-xcode-12
@@ -739,6 +732,11 @@ extension PaywallViewController {
         }
 
         presentationWillBegin()
+        
+        webView.alpha = 0
+        UIView.animate(withDuration: 0.25) {
+            self.webView.alpha = 1
+        }
     }
 
   /// Determines whether a survey will show.
@@ -791,9 +789,6 @@ extension PaywallViewController {
 
     public override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        if webViewAlphaZeroOnWillAppear {
-            webView.alpha = 1.0
-        }
         presentationDidFinish()
     }
 
