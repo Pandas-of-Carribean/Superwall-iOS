@@ -132,7 +132,7 @@ class ConfigManager {
       // Retrieve cached config and determine if refresh is enabled
       let cachedConfig = storage.get(LatestConfig.self)
       let enableConfigRefresh = cachedConfig?.featureFlags.enableConfigRefresh ?? false
-      let timeout: TimeInterval = 1
+      let timeout: TimeInterval = 3
 
       // Prepare tasks for fetching config and geoInfo concurrently
       // Return a tuple including the `isUsingCached` flag

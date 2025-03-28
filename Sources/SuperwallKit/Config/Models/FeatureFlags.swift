@@ -41,7 +41,7 @@ struct FeatureFlags: Codable, Equatable {
     enableThrottleSchedulingPolicy = rawFeatureFlags.value(forKey: "enable_throttle_scheduling_policy", default: false)
     enableNoneSchedulingPolicy = rawFeatureFlags.value(forKey: "enable_none_scheduling_policy", default: false)
     enableMultiplePaywallUrls = rawFeatureFlags.value(forKey: "enable_multiple_paywall_urls", default: false)
-    enableConfigRefresh = rawFeatureFlags.value(forKey: "enable_config_refresh_v2", default: false)
+    enableConfigRefresh = true//rawFeatureFlags.value(forKey: "enable_config_refresh_v2", default: false)
     enableTextInteraction = rawFeatureFlags.value(forKey: "enable_text_interaction", default: false)
   }
 
