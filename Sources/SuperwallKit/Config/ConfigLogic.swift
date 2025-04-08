@@ -60,34 +60,56 @@ enum ConfigLogic {
   ///
   /// - Returns: A `Set` of `TriggerRule` arrays.
   static func getAudienceFiltersPerCampaign(
-    from triggers: Set<Trigger>
+      from triggers: Set<Trigger>, rule: [String: Any]? = nil
   ) -> Set<[TriggerRule]> {
-    var campaignIds: Set<String> = []
-    var uniqueTriggerAudiences: Set<[TriggerRule]> = []
-    for trigger in triggers {
-      guard let firstAudience = trigger.audiences.first else {
-        continue
-      }
-      let campaignId = firstAudience.experiment.groupId
+      var campaignIds: Set<String> = []
+      var uniqueTriggerAudiences: Set<[TriggerRule]> = []
+      for trigger in triggers {
+          guard let firstAudience = trigger.audiences.first else {
+              continue
+          }
+          let campaignId = firstAudience.experiment.groupId
 
-      if campaignIds.contains(campaignId) {
-        continue
+          if campaignIds.contains(campaignId) {
+              continue
+          }
+
+          campaignIds.insert(campaignId)
+
+          if let abTestLabel = rule?["abTestLabel"] as? String {
+              var hasMatch = false
+              var lastAudience: TriggerRule?
+
+              for audience in trigger.audiences {
+                  lastAudience = audience // 记录最后一个元素
+                  if let expression = audience.expression,  expression.contains(abTestLabel) {
+                      uniqueTriggerAudiences.insert([audience])
+                      hasMatch = true
+                  }
+              }
+
+              // 如果没有匹配项且存在最后一个元素，则加入最后一个
+              if !hasMatch, let last = lastAudience {
+                  uniqueTriggerAudiences.insert([last])
+              }
+          } else {
+              uniqueTriggerAudiences.insert(trigger.audiences)
+          }
+
       }
 
-      campaignIds.insert(campaignId)
-      uniqueTriggerAudiences.insert(trigger.audiences)
-    }
-    return uniqueTriggerAudiences
+      return uniqueTriggerAudiences
   }
 
   /// Updates existing assignments by removing, replacing or inserting new
   /// ones based on the given triggers.
   static func chooseAssignments(
     fromTriggers triggers: Set<Trigger>,
-    assignments: Set<Assignment>
+    assignments: Set<Assignment>,
+    rule: [String: Any]?
   ) -> Set<Assignment> {
     var assignments = assignments
-    let groupedTriggerAudiences = getAudienceFiltersPerCampaign(from: triggers)
+      let groupedTriggerAudiences = getAudienceFiltersPerCampaign(from: triggers, rule: rule)
 
     // Loop through each trigger and each of its audiences.
     for audienceGroup in groupedTriggerAudiences {
@@ -212,11 +234,10 @@ enum ConfigLogic {
   static func getAllActiveTreatmentPaywallIds(
     fromTriggers triggers: Set<Trigger>,
     assignments: Set<Assignment>,
-    expressionEvaluator: ExpressionEvaluating
-  ) async -> Set<String> {
+    expressionEvaluator: ExpressionEvaluating, rule: [String: Any]?) async -> Set<String> {
     var assignments = assignments
 
-    let audienceFilters = getAudienceFiltersPerCampaign(from: triggers).flatMap { $0 }
+        let audienceFilters = getAudienceFiltersPerCampaign(from: triggers, rule: rule).flatMap { $0 }
 
     // Collect all experiment IDs and determine which ones should be skipped.
     var allExperimentIds = Set<String>()
@@ -262,9 +283,10 @@ enum ConfigLogic {
 
   static func getActiveTreatmentPaywallIds(
     forTriggers triggers: Set<Trigger>,
-    assignments: Set<Assignment>
+    assignments: Set<Assignment>,
+    rule: [String: Any]?
   ) -> Set<String> {
-    let groupedTriggerAudiences = getAudienceFiltersPerCampaign(from: triggers)
+      let groupedTriggerAudiences = getAudienceFiltersPerCampaign(from: triggers, rule: rule)
     let triggerExperimentIds = groupedTriggerAudiences.flatMap { $0.map { $0.experiment.id } }
 
     var identifiers = Set<String>()
@@ -331,3 +353,4 @@ enum ConfigLogic {
     )
   }
 }
+

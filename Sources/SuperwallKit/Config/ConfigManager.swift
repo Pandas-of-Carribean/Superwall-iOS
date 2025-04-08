@@ -316,7 +316,8 @@ class ConfigManager {
 
     assignments = ConfigLogic.chooseAssignments(
       fromTriggers: triggers,
-      assignments: assignments
+      assignments: assignments,
+      rule: options.abTestLabel.map { ["abTestLabel": $0] }
     )
 
     storage.overwriteAssignments(assignments)
@@ -384,7 +385,8 @@ class ConfigManager {
     let assignments = storage.getAssignments()
     return ConfigLogic.getActiveTreatmentPaywallIds(
       forTriggers: preloadableTriggers,
-      assignments: assignments
+      assignments: assignments,
+      rule: options.abTestLabel.map { ["abTestLabel": $0] }
     )
   }
 
@@ -422,7 +424,8 @@ class ConfigManager {
       var paywallIds = await ConfigLogic.getAllActiveTreatmentPaywallIds(
         fromTriggers: triggers,
         assignments: assignments,
-        expressionEvaluator: expressionEvaluator
+        expressionEvaluator: expressionEvaluator,
+        rule: options.abTestLabel.map { ["abTestLabel": $0] }
       )
       // Do not preload the presented paywall. This is because if config refreshes, we
       // don't want to refresh the presented paywall until it's dismissed and presented again.
@@ -483,3 +486,4 @@ class ConfigManager {
     }
   }
 }
+
