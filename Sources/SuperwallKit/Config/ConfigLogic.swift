@@ -82,13 +82,13 @@ enum ConfigLogic {
 
               for audience in trigger.audiences {
                   lastAudience = audience // 记录最后一个元素
-                  if let expression = audience.expression,  expression.contains(abTestLabel) {
+                  if let expression = audience.expression, expression.contains(abTestLabel) {
                       uniqueTriggerAudiences.insert([audience])
                       hasMatch = true
                   }
               }
 
-              // 如果没有匹配项且存在最后一个元素，则加入最后一个
+              // 如果没有匹配项且存在最后一个兜底元素，预加载兜底的付费墙
               if !hasMatch, let last = lastAudience {
                   uniqueTriggerAudiences.insert([last])
               }
