@@ -199,6 +199,8 @@ public final class SuperwallOptions: NSObject, Encodable {
     }
   }
 
+  public var abTestLabel: String?
+
   /// Configuration for printing to the console.
   @objc(SWKLogging)
   @objcMembers
@@ -230,6 +232,7 @@ public final class SuperwallOptions: NSObject, Encodable {
     case storeKitVersion
     case maxConfigRetryCount
     case shouldObservePurchases
+    case abTestLabel
   }
 
   public override init() {
@@ -263,6 +266,7 @@ public final class SuperwallOptions: NSObject, Encodable {
     try container.encode(storeKitVersion.description, forKey: .storeKitVersion)
     try container.encode(maxConfigRetryCount, forKey: .maxConfigRetryCount)
     try container.encode(shouldObservePurchases, forKey: .shouldObservePurchases)
+    try container.encode(abTestLabel, forKey: .abTestLabel)
   }
 
   func toDictionary() -> [String: Any] {
@@ -277,3 +281,4 @@ public final class SuperwallOptions: NSObject, Encodable {
     }
   }
 }
+
