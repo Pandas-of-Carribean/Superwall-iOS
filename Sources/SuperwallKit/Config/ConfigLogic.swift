@@ -77,20 +77,22 @@ enum ConfigLogic {
           campaignIds.insert(campaignId)
 
           if let abTestLabel = rule?["abTestLabel"] as? String {
-              var hasMatch = false
+              var matchedAudiences: [TriggerRule] = []
               var lastAudience: TriggerRule?
 
               for audience in trigger.audiences {
                   lastAudience = audience // 记录最后一个元素
                   if let expression = audience.expression, expression.contains(abTestLabel) {
-                      uniqueTriggerAudiences.insert([audience])
-                      hasMatch = true
+                      matchedAudiences.append(audience)
                   }
               }
 
-              // 如果没有匹配项且存在最后一个兜底元素，预加载兜底的付费墙
-              if !hasMatch, let last = lastAudience {
-                  uniqueTriggerAudiences.insert([last])
+              // 匹配值只判断了abTestLabel，有可能不满足其它rule，所以也需要预加载兜底
+              if let last = lastAudience {
+                  if !matchedAudiences.contains(where: { $0 == last }) {
+                      matchedAudiences.append(last)
+                  }
+                  uniqueTriggerAudiences.insert(matchedAudiences)
               }
           } else {
               uniqueTriggerAudiences.insert(trigger.audiences)
