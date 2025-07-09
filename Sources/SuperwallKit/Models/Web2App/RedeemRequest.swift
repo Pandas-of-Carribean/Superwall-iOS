@@ -6,14 +6,15 @@
 //
 
 struct RedeemRequest: Encodable {
-  let deviceId: String
-  let appUserId: String?
-  let aliasId: String
-  let codes: Set<Redeemable>
-  let receipts: [TransactionReceipt]
+    let deviceId: String
+    let appUserId: String?
+    let aliasId: String
+    let codes: Set<Redeemable>
+    let receipts: [TransactionReceipt]
+    let appTransactionId: String?
 }
 
 struct TransactionReceipt: Encodable {
-  let type = "IOS"
-  let jwsRepresentation: String
+    let type = "IOS"
+    let jwsRepresentation: String
 }

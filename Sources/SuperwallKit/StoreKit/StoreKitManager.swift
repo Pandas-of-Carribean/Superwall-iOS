@@ -1,139 +1,174 @@
+// swiftlint:disable function_body_length
+
+import Combine
 import Foundation
 import StoreKit
-import Combine
 
 actor StoreKitManager {
-  /// Retrieves products from storekit.
-  private let productsManager: ProductsManager
+    /// Retrieves products from storekit.
+    private let productsManager: ProductsManager
 
-  private(set) var productsById: [String: StoreProduct] = [:]
-  private struct ProductProcessingResult {
-    let productIdsToLoad: Set<String>
-    let substituteProductsById: [String: StoreProduct]
-    let productItems: [Product]
-  }
-
-  init(productsManager: ProductsManager) {
-    self.productsManager = productsManager
-  }
-
-  func getProductVariables(for paywall: Paywall) async -> [ProductVariable] {
-    guard let output = try? await getProducts(
-      forPaywall: paywall,
-      placement: nil
-    ) else {
-      return []
+    private(set) var productsById: [String: StoreProduct] = [:]
+    private struct ProductProcessingResult {
+        let productIdsToLoad: Set<String>
+        let substituteProductsById: [String: StoreProduct]
+        let productItems: [Product]
     }
 
-    var productAttributes: [ProductVariable] = []
+    init(productsManager: ProductsManager) {
+        self.productsManager = productsManager
+    }
 
-    // Add the StoreProduct attributes for each product at its corresponding index
-    paywall.products.forEach { productItem in
-      guard let storeProduct = output.productsById[productItem.id] else {
-        return
-      }
+    func getProductVariables(for paywall: Paywall) async -> [ProductVariable] {
+        guard let output = try? await getProducts(
+            forPaywall: paywall,
+            placement: nil
+        ) else {
+            return []
+        }
 
-      if let name = productItem.name {
-        productAttributes.append(
-          ProductVariable(
-            name: name,
-            attributes: storeProduct.attributesJson
-          )
+        var productAttributes: [ProductVariable] = []
+
+        // Add the StoreProduct attributes for each product at its corresponding index
+        for productItem in paywall.products {
+            guard let storeProduct = output.productsById[productItem.id] else {
+                continue
+            }
+
+            if let name = productItem.name {
+                productAttributes.append(
+                    ProductVariable(
+                        name: name,
+                        attributes: storeProduct.attributesJson
+                    )
+                )
+            }
+        }
+
+        return productAttributes
+    }
+
+    func getProducts(
+        forPaywall paywall: Paywall?,
+        placement: PlacementData?,
+        substituting substituteProductsByLabel: [String: ProductOverride]? = nil
+    ) async throws -> (
+        productsById: [String: StoreProduct],
+        productItems: [Product]
+    ) {
+        // 1. Compute fetch IDs = paywall IDs - byProduct IDs + byId IDs
+        let paywallIDs = Set(paywall?.productIds ?? [])
+        let byIdIDs: Set<String> = Set(substituteProductsByLabel?.values.compactMap {
+            if case let .byId(id) = $0 {
+                return id
+            } else {
+                return nil
+            }
+        } ?? [])
+        let byProductIDs: Set<String> = Set(substituteProductsByLabel?.values.compactMap {
+            if case let .byProduct(product) = $0 {
+                return product.productIdentifier
+            } else {
+                return nil
+            }
+        } ?? [])
+        let idsToFetch = paywallIDs
+            .subtracting(byProductIDs)
+            .union(byIdIDs)
+
+        // 2. Fetch exactly that set once
+        let fetchedProducts = try await productsManager.products(
+            identifiers: idsToFetch,
+            forPaywall: paywall,
+            placement: placement
         )
-      }
-    }
 
-    return productAttributes
-  }
-
-  func getProducts(
-    forPaywall paywall: Paywall?,
-    placement: PlacementData?,
-    substituting substituteProductsByLabel: [String: StoreProduct]? = nil
-  ) async throws -> (productsById: [String: StoreProduct], productItems: [Product]) {
-    let processingResult = removeAndStore(
-      substituteProductsByLabel: substituteProductsByLabel,
-      paywallProductIds: paywall?.productIds ?? [],
-      productItems: paywall?.products ?? []
-    )
-
-    let products = try await productsManager.products(
-      identifiers: processingResult.productIdsToLoad,
-      forPaywall: paywall,
-      placement: placement
-    )
-
-    var productsById = processingResult.substituteProductsById
-
-    for product in products {
-      productsById[product.productIdentifier] = product
-      self.productsById[product.productIdentifier] = product
-    }
-
-    return (productsById, processingResult.productItems)
-  }
-
-  /// For each product to substitute, this replaces the paywall product at the given index and stores
-  /// the substitute product in memory.
-  private func removeAndStore(
-    substituteProductsByLabel: [String: StoreProduct]?,
-    paywallProductIds: [String],
-    productItems: [Product]
-  ) -> ProductProcessingResult {
-    /// Product IDs to load in the future. Initialised to the given paywall products.
-    var productIdsToLoad = paywallProductIds
-
-    /// Products to substitute, initially empty.
-    var substituteProductsById: [String: StoreProduct] = [:]
-
-    /// The final product IDs by index. Initialised with the ones from the paywall object.
-    var productItems: [Product] = productItems
-
-    // If there are no substitutions, return what we have
-    guard let substituteProductsByLabel = substituteProductsByLabel else {
-      return ProductProcessingResult(
-        productIdsToLoad: Set(productIdsToLoad),
-        substituteProductsById: substituteProductsById,
-        productItems: productItems
-      )
-    }
-
-    // Otherwise, iterate over each substitute product
-    for (name, product) in substituteProductsByLabel {
-      let productId = product.productIdentifier
-
-      // Map substitute product by its ID.
-      substituteProductsById[productId] = product
-
-      // Store the substitute product by id in the class' dictionary
-      self.productsById[productId] = product
-
-      if let index = productItems.firstIndex(where: { $0.name == name }) {
-        // Update the product ID at the found index
-        productItems[index] = Product(
-          name: name,
-          type: .appStore(.init(id: productId)),
-          entitlements: product.entitlements
+        // 3. Build lookup from identifier → StoreProduct
+        var productsById = Dictionary(
+            uniqueKeysWithValues: fetchedProducts.map { ($0.productIdentifier, $0) }
         )
-      } else {
-        // If it isn't found, just append to the list.
-        productItems.append(
-          Product(
-            name: name,
-            type: .appStore(.init(id: productId)),
-            entitlements: product.entitlements
-          )
-        )
-      }
 
-      // Make sure we don't load the substitute product id
-      productIdsToLoad.removeAll { $0 == productId }
+        // 4. Inject any .byProduct overrides directly
+        substituteProductsByLabel?.forEach { _, override in
+            if case let .byProduct(product) = override {
+                productsById[product.productIdentifier] = product
+            }
+        }
+
+        // 5. Rebuild the paywall’s Product list, applying overrides
+        var productItems: [Product] = []
+        for original in paywall?.products ?? [] {
+            guard let name = original.name else {
+                productItems.append(original)
+                continue
+            }
+
+            if let override = substituteProductsByLabel?[name] {
+                switch override {
+                case let .byId(id):
+                    if let product = productsById[id] {
+                        productItems.append(
+                            Product(
+                                name: name,
+                                type: .appStore(.init(id: id)),
+                                entitlements: product.entitlements
+                            )
+                        )
+                    } else {
+                        productItems.append(original)
+                    }
+                case let .byProduct(product):
+                    let id = product.productIdentifier
+                    productItems.append(
+                        Product(
+                            name: name,
+                            type: .appStore(.init(id: id)),
+                            entitlements: product.entitlements
+                        )
+                    )
+                }
+            } else {
+                productItems.append(original)
+            }
+        }
+
+        // 6. Cache in memory
+        for (id, product) in productsById {
+            self.productsById[id] = product
+        }
+
+        return (productsById, productItems)
     }
 
-    return ProductProcessingResult(
-      productIdsToLoad: Set(productIdsToLoad),
-      substituteProductsById: substituteProductsById,
-      productItems: productItems
-    )
-  }
+    func preloadOverrides(_ overrides: [ProductOverride]) async {
+        let allIds: Set<String> = Set(overrides.compactMap {
+            if case let .byId(id) = $0 {
+                return id
+            } else {
+                return nil
+            }
+        })
+
+        // Subtract out anything already in our cache
+        let idsToFetch = allIds.filter { self.productsById[$0] == nil }
+
+        // Nothing new to load?
+        if idsToFetch.isEmpty {
+            return
+        }
+
+        guard let fetchedProducts = try? await productsManager.products(
+            identifiers: idsToFetch,
+            forPaywall: nil,
+            placement: nil
+        ) else {
+            return
+        }
+        let productsById = Dictionary(
+            uniqueKeysWithValues: fetchedProducts.map { ($0.productIdentifier, $0) }
+        )
+        for (id, product) in productsById {
+            self.productsById[id] = product
+        }
+    }
 }

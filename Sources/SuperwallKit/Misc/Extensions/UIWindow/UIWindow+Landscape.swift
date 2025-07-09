@@ -8,11 +8,14 @@
 import UIKit
 
 extension UIWindow {
-  static var isLandscape: Bool {
-    return UIApplication.shared.windows
-      .first?
-      .windowScene?
-      .interfaceOrientation
-      .isLandscape ?? false
-  }
+    static var isLandscape: Bool {
+        guard let sharedApplication = UIApplication.sharedApplication else {
+            return false
+        }
+        return sharedApplication.windows
+            .first?
+            .windowScene?
+            .interfaceOrientation
+            .isLandscape ?? false
+    }
 }

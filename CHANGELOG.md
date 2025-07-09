@@ -2,6 +2,140 @@
 
 The changelog for `SuperwallKit`. Also see the [releases](https://github.com/superwall/Superwall-iOS/releases) on GitHub.
 
+## 4.6.0
+
+### Enhancements
+
+- Adds the `PaywallOption` `overrideProductsByName`, which can be used to globally override products on any paywall that have a given name. This can also be set after configure has been called by setting `Superwall.shared.overrideProductsByName`.
+
+### Fixes
+
+- Fixes issue where deep links passed to the SDK before configure completes aren’t handled after configure finishes.
+
+## 4.5.2
+
+### Fixes
+
+- Replace `UIApplication.shared` with `sharedApplication` accessed via KVC so that SuperwallKit can be used in app extensions.
+- Fixes issue where the paywall debugger would crash when viewing template variables if products weren't loaded.
+- Fixes issue where an in-app web checkout wouldn't close Safari after purchase.
+
+## 4.5.1
+
+### Fixes
+
+- Fixes issue where `webViewLoad_fail` events weren't being tracked.
+
+## 4.5.0
+
+### Enhancements
+
+- Adds `handleSuperwallDeepLink(_:pathComponents:queryParameters:)` to the `SuperwallDelegate`. This is called when all deep links from the web checkout are handled. This link may arrive as either a universal link (`https://yoursubdomain.superwall.app/app-link/...`) or a custom URL scheme (`subdomain://yoursubdomain.superwall.app/app-link/...`).
+- Adds `url`, `path`, `pathExtension`, `lastPathComponent`, `host`, `query`, and `fragment` to the `deepLink_open` event, which you can use in audience filters.
+
+### Fixes
+
+- Fixes a race condition when identifying and then immediately getting user attributes.
+- Removes usage of private API `LSApplicationWorkspace`.
+
+## 4.4.2
+
+### Enhancements
+
+- Updates Superscript to 0.2.8.
+
+### Fixes
+
+- Fix for old versions of Xcode not building due to not supporting `.winBack` transaction offer types.
+- Fixes an issue where the paywall could be presented from the wrong scene in multi-window apps.
+
+## 4.4.1
+
+### Fixes
+
+- Fixes race condition when initialising the SDK that could result in a crash.
+
+## 4.4.0
+
+### Enhancements
+
+- Adds `Superwall.shared.getDeviceAttributes()`, which returns the device attributes that are used when evaluating audience filters.
+
+## 4.3.11
+
+### Fixes
+
+- Fixes an issue when serialising some device attributes in the flutter SDK.
+
+## 4.3.10
+
+### Enhancements
+
+- Adds `networkDecoding_fail` event to help with debugging if a decoding error happens.
+- Adds `state` to the `PaywallInfo` object. This is set on dismiss of the paywall and can be used to access state variables set in the editor.
+
+### Fixes
+
+- Fixes issue where the configuration completion block could take a long time to complete if the user had a lot of transactions.
+- Fixes issue where `didDismissPaywall(withInfo:)` and the `onDismiss` paywall presentation handler would be called before the presenting window was destroyed.
+
+## 4.3.9
+
+### Fixes
+
+- Fixes issue with a paywall not closing if you had a survey attached to a paywall that fires after purchasing and a `survey_response` implicit trigger.
+
+## 4.3.8
+
+### Fixes
+
+- Fixes build issue with VisionOS.
+
+## 4.3.7
+
+### Enhancements
+
+- Adds `storeFrontCountryCode`, `storeFrontCurrency`, and `storeFrontId` to the device variables. These can be used to display web checkout paywalls exclusively to those in the USA.
+- Adds support for redeeming a code via a universal link.
+- Adds `code` and `type` to redemption events to improve debugging.
+
+### Fixes
+
+- Ensures that the UUID from the automatically assigned Superwall alias is passed as the `appAccountToken` for purchases when `identify(userId:)` has not been called.
+
+## 4.3.5
+
+### Fixes
+
+- Fixes issue where `Superwall.shared.dismiss()` wouldn't work as expected if the in-app browser was open.
+
+## 4.3.4
+
+### Enhancements
+
+- Sends the campaign details to the paywall.
+
+## 4.3.3
+
+### Fixes
+
+- Prevents the blocking of paywall presentation if the enrichment request fails.
+- Fixes an issue where an app extension accessing Superwall wouldn't work.
+- Sometimes transactions weren't being retrieved by our SDK after a purchase so we've made this process more robust.
+- Fixes issue with compiler failing to build for CocoaPods on older Xcode versions.
+
+## 4.3.0
+
+### Enhancements
+
+- Adds a `SuperwallOption` named `enableExperimentalDeviceVariables`. When set to `true`, this enables additional device-level variables: `latestSubscriptionPeriodType`, `latestSubscriptionState`, and `latestSubscriptionWillAutoRenew`. These properties provide information about the most recent StoreKit 2 subscription on the device and can be used in audience filters. Note that due to their experimental nature, they are subject to change in future updates.
+
+## 4.2.2
+
+### Fixes
+
+- Fixes an issue where computed properties used in audience filters (e.g. "minutes since") weren’t being properly encoded. This could lead to incorrect behavior when falling back to the cached config after a network issue.
+
 ## 4.2.1
 
 ### Enhancements

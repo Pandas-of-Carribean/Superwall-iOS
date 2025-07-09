@@ -1,6 +1,6 @@
-import XCTest
-@testable import SuperwallKit
 import CoreMedia
+@testable import SuperwallKit
+import XCTest
 
 // swiftlint:disable all
 
@@ -527,38 +527,72 @@ let response = #"""
 """#
 
 final class ConfigTypeTests: XCTestCase {
-  func testParseConfig() throws {
-    let parsedResponse = try! JSONDecoder.fromSnakeCase.decode(
-      Config.self,
-      from: response.data(using: .utf8)!
-    )
+    func testParseConfig() throws {
+        let parsedResponse = try! JSONDecoder.fromSnakeCase.decode(
+            Config.self,
+            from: response.data(using: .utf8)!
+        )
 
-    XCTAssertTrue(parsedResponse.paywalls.first!.products.count != 0)
-    guard let trigger = parsedResponse.triggers.filter({ $0.placementName == "MyEvent" }).first
-    else {
-      return XCTFail("opened_application trigger not found")
+        XCTAssertTrue(parsedResponse.paywalls.first!.products.count != 0)
+        guard let trigger = parsedResponse.triggers.filter({ $0.placementName == "MyEvent" }).first
+        else {
+            return XCTFail("opened_application trigger not found")
+        }
+
+        let firstRule = trigger.audiences[0]
+        XCTAssertNil(firstRule.expression)
+        XCTAssertEqual(firstRule.experiment.id, "80")
+
+        XCTAssertEqual(parsedResponse.web2appConfig?.restoreAccessURL, URL(string: "https://web2app.localhost:3065/manage")!)
+
+        switch firstRule.experiment.variants.first!.type {
+        case .treatment:
+            throw TestError("Expecting Holdout")
+        case .holdout:
+            XCTAssertEqual(firstRule.experiment.variants.first!.id, "218")
+        }
+
+        let secondVariant = firstRule.experiment.variants[1]
+        switch secondVariant.type {
+        case .holdout:
+            throw TestError("Expecting holdout")
+        case .treatment:
+            XCTAssertEqual(secondVariant.paywallId, "example-paywall-4de1-2022-03-15")
+            XCTAssertEqual(secondVariant.id, "219")
+        }
     }
 
-    let firstRule = trigger.audiences[0]
-    XCTAssertNil(firstRule.expression)
-    XCTAssertEqual(firstRule.experiment.id, "80")
+    func testEncodeThenDecode() throws {
+        let config = Config(
+            buildId: "abc",
+            triggers: [
+                Trigger(
+                    placementName: "trigger1",
+                    audiences: [
+                        TriggerRule(
+                            experiment: .stub(),
+                            expression: "abc == true",
+                            occurrence: .stub(),
+                            computedPropertyRequests: [ComputedPropertyRequest(type: .hoursSince, placementName: "trigger1")],
+                            preload: .init(behavior: .always)
+                        ),
+                    ]
+                ),
+            ],
+            paywalls: [.stub()],
+            logLevel: 1,
+            locales: ["en"],
+            appSessionTimeout: 5000,
+            featureFlags: .stub(),
+            preloadingDisabled: PreloadingDisabled(all: false, triggers: ["trigger1"]),
+            attribution: .init(appleSearchAds: .init(enabled: true)),
+            products: [.init(name: "prod1", type: .appStore(.init(id: "prod1")), entitlements: [.default])]
+        )
 
-    XCTAssertEqual(parsedResponse.web2appConfig?.restoreAccessURL, URL(string: "https://web2app.localhost:3065/manage")!)
+        let data = try JSONEncoder().encode(config)
 
-    switch firstRule.experiment.variants.first!.type {
-    case .treatment:
-      throw TestError.init("Expecting Holdout")
-    case .holdout:
-      XCTAssertEqual(firstRule.experiment.variants.first!.id, "218")
+        let decoded = try JSONDecoder().decode(Config.self, from: data)
+
+        XCTAssertEqual(config, decoded)
     }
-
-    let secondVariant = firstRule.experiment.variants[1]
-    switch secondVariant.type {
-    case .holdout:
-      throw TestError.init("Expecting holdout")
-    case .treatment:
-      XCTAssertEqual(secondVariant.paywallId, "example-paywall-4de1-2022-03-15")
-      XCTAssertEqual(secondVariant.id, "219")
-    }
-  }
 }
