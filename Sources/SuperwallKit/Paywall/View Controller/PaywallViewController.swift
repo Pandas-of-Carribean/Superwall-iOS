@@ -1037,6 +1037,15 @@ extension PaywallViewController {
 
         Superwall.shared.dependencyContainer.delegateAdapter.didDismissPaywall(withInfo: info)
     }
+
+    override open func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if Superwall.shared.dependencyContainer.deviceHelper.interfaceStyleOverride == nil {
+            if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+                reloadWebView()
+            }
+        }
+    }
 }
 
 #if !os(visionOS)
