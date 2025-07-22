@@ -1040,8 +1040,10 @@ extension PaywallViewController {
 
     override open func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
-            reloadWebView()
+        if Superwall.shared.dependencyContainer.deviceHelper.interfaceStyleOverride == nil {
+            if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+                reloadWebView()
+            }
         }
     }
 }
