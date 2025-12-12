@@ -76,13 +76,20 @@ enum ConfigLogic {
 
           campaignIds.insert(campaignId)
 
-          if let abTestLabel = rule?["abTestLabel"] as? String {
+          let abTestLabels = [
+              rule?["abTestGlobalLabel"] as? String,
+              rule?["abTestLabel"] as? String
+          ].compactMap { $0 }
+
+          if !abTestLabels.isEmpty {
               var matchedAudiences: [TriggerRule] = []
               var lastAudience: TriggerRule?
 
               for audience in trigger.audiences {
                   lastAudience = audience // 记录最后一个元素
-                  if let expression = audience.expression, expression.contains(abTestLabel) {
+                  if let expression = audience.expression,
+                     abTestLabels.contains(where: { expression.contains($0) })
+                  {
                       matchedAudiences.append(audience)
                   }
               }

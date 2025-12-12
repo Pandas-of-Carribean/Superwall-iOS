@@ -28,6 +28,16 @@ class ConfigManager {
 
     /// Options for configuring the SDK.
     var options: SuperwallOptions
+    private var abTestRule: [String: Any]? {
+        var rule: [String: Any] = [:]
+        if let abTestGlobalLabel = options.abTestGlobalLabel {
+            rule["abTestGlobalLabel"] = abTestGlobalLabel
+        }
+        if let abTestLabel = options.abTestLabel {
+            rule["abTestLabel"] = abTestLabel
+        }
+        return rule.isEmpty ? nil : rule
+    }
 
     /// A dictionary of triggers by their placement name.
     @DispatchQueueBacked
@@ -299,7 +309,7 @@ class ConfigManager {
         assignments = ConfigLogic.chooseAssignments(
             fromTriggers: triggers,
             assignments: assignments,
-            rule: options.abTestLabel.map { ["abTestLabel": $0] }
+            rule: abTestRule
         )
 
         storage.overwriteAssignments(assignments)
@@ -369,7 +379,7 @@ class ConfigManager {
         return ConfigLogic.getActiveTreatmentPaywallIds(
             forTriggers: preloadableTriggers,
             assignments: assignments,
-            rule: options.abTestLabel.map { ["abTestLabel": $0] }
+            rule: abTestRule
         )
     }
 
@@ -408,7 +418,7 @@ class ConfigManager {
                 fromTriggers: triggers,
                 assignments: assignments,
                 expressionEvaluator: expressionEvaluator,
-                rule: options.abTestLabel.map { ["abTestLabel": $0] }
+                rule: abTestRule
             )
             // Do not preload the presented paywall. This is because if config refreshes, we
             // don't want to refresh the presented paywall until it's dismissed and presented again.

@@ -217,6 +217,7 @@ public final class SuperwallOptions: NSObject, Encodable {
     }
 
     public var abTestLabel: String?
+    public var abTestGlobalLabel: String?
 
     /// Configuration for printing to the console.
     @objc(SWKLogging)
@@ -251,6 +252,7 @@ public final class SuperwallOptions: NSObject, Encodable {
         case maxConfigRetryCount
         case shouldObservePurchases
         case abTestLabel
+        case abTestGlobalLabel
         case enableExperimentalDeviceVariables
     }
 
@@ -287,6 +289,7 @@ public final class SuperwallOptions: NSObject, Encodable {
         try container.encode(maxConfigRetryCount, forKey: .maxConfigRetryCount)
         try container.encode(shouldObservePurchases, forKey: .shouldObservePurchases)
         try container.encode(abTestLabel, forKey: .abTestLabel)
+        try container.encode(abTestGlobalLabel, forKey: .abTestGlobalLabel)
         try container.encode(enableExperimentalDeviceVariables, forKey: .enableExperimentalDeviceVariables)
     }
 
