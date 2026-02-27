@@ -17,6 +17,14 @@ public final class SuperwallOptions: NSObject, Encodable {
   /// Configures the appearance and behaviour of paywalls.
   public var paywalls = PaywallOptions()
 
+  /// An optional label used to filter which paywalls get preloaded.
+  /// Only audiences whose CEL expression contains this label will be preloaded.
+  public var abTestLabel: String?
+
+  /// An optional global label used to filter which paywalls get preloaded.
+  /// Only audiences whose CEL expression contains this label will be preloaded.
+  public var abTestGlobalLabel: String?
+
   /// A mapping of local resource IDs to local file URLs.
   ///
   /// Use this to serve paywall assets (images, videos, Lottie animations) from local files

@@ -60,7 +60,8 @@ enum ConfigLogic {
   ///
   /// - Returns: A `Set` of `TriggerRule` arrays.
   static func getAudienceFiltersPerCampaign(
-    from triggers: Set<Trigger>
+    from triggers: Set<Trigger>,
+    rule: [String: Any]? = nil
   ) -> Set<[TriggerRule]> {
     var campaignIds: Set<String> = []
     var uniqueTriggerAudiences: Set<[TriggerRule]> = []
@@ -75,7 +76,34 @@ enum ConfigLogic {
       }
 
       campaignIds.insert(campaignId)
-      uniqueTriggerAudiences.insert(trigger.audiences)
+
+      let abTestLabels = [
+        rule?["abTestGlobalLabel"] as? String,
+        rule?["abTestLabel"] as? String
+      ].compactMap { $0 }
+
+      if !abTestLabels.isEmpty {
+        var matchedAudiences: [TriggerRule] = []
+        var lastAudience: TriggerRule?
+
+        for audience in trigger.audiences {
+          lastAudience = audience
+          if let expression = audience.expression,
+            abTestLabels.contains(where: { expression.contains($0) }) {
+            matchedAudiences.append(audience)
+          }
+        }
+
+        // Always include the last audience as fallback
+        if let last = lastAudience {
+          if !matchedAudiences.contains(where: { $0 == last }) {
+            matchedAudiences.append(last)
+          }
+          uniqueTriggerAudiences.insert(matchedAudiences)
+        }
+      } else {
+        uniqueTriggerAudiences.insert(trigger.audiences)
+      }
     }
     return uniqueTriggerAudiences
   }
@@ -212,11 +240,12 @@ enum ConfigLogic {
   static func getActiveTreatmentPaywallIds(
     fromTriggers triggers: Set<Trigger>,
     assignments: Set<Assignment>,
-    expressionEvaluator: ExpressionEvaluating
+    expressionEvaluator: ExpressionEvaluating,
+    rule: [String: Any]? = nil
   ) async -> Set<String> {
     var assignments = assignments
 
-    let audienceFilters = getAudienceFiltersPerCampaign(from: triggers).flatMap { $0 }
+    let audienceFilters = getAudienceFiltersPerCampaign(from: triggers, rule: rule).flatMap { $0 }
 
     // Collect all experiment IDs and determine which ones should be skipped.
     var allExperimentIds = Set<String>()

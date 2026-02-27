@@ -29,6 +29,17 @@ class ConfigManager {
   /// Options for configuring the SDK.
   var options: SuperwallOptions
 
+  private var abTestRule: [String: Any]? {
+    var rule: [String: Any] = [:]
+    if let abTestGlobalLabel = options.abTestGlobalLabel {
+      rule["abTestGlobalLabel"] = abTestGlobalLabel
+    }
+    if let abTestLabel = options.abTestLabel {
+      rule["abTestLabel"] = abTestLabel
+    }
+    return rule.isEmpty ? nil : rule
+  }
+
   /// A dictionary of triggers by their placement name.
   @DispatchQueueBacked
   var triggersByPlacementName: [String: Trigger] = [:]
@@ -549,7 +560,8 @@ class ConfigManager {
     return await ConfigLogic.getActiveTreatmentPaywallIds(
       fromTriggers: preloadableTriggers,
       assignments: assignments,
-      expressionEvaluator: expressionEvaluator
+      expressionEvaluator: expressionEvaluator,
+      rule: abTestRule
     )
   }
 
